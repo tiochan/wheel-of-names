@@ -1,0 +1,51 @@
+replicaCount: 2
+ingress:
+  internal:
+    enabled: true
+    ingressClass: internal
+    hostname: wheel-of-names.internal.pro.k-cloud.io
+    tls:
+      enabled: true
+      secretName: wheel-of-names-internal-tls
+    annotations:
+      cert-manager.io/cluster-issuer: managed
+  corp:
+    enabled: true
+    ingressClass: corp
+    hostname: wheel-of-names.corp.pro.k-cloud.io
+    tls:
+      enabled: true
+      secretName: wheel-of-names-corp-tls
+    annotations:
+      cert-manager.io/cluster-issuer: managed
+  public:
+    enabled: true
+    ingressClass: public
+    hostname: wheel-of-names.public.pro.k-cloud.io
+    tls:
+      enabled: true
+      secretName: wheel-of-names-public-tls
+    annotations:
+      cert-manager.io/cluster-issuer: managed
+
+#resources:
+#  limits:
+#    cpu: 1500m
+#    memory: 4Gi
+#  requests:
+#    cpu: 1500m
+#    memory: 4Gi
+
+aws:
+  enabled: true
+  iamRole: arn:aws:iam::523714791375:role/kaos-wheel-of-names
+
+env:
+  # This value tells the container which environment is using and is used for picking the correct configuration when running the container.
+  RUNTIME_ENV: "production"
+
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 1
+  targetCPUUtilizationPercentage: 55

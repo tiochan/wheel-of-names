@@ -1,0 +1,223 @@
+# This should contain your team name to make it easier to contact the developers
+# when issues are discovered in production etc.
+team: unichat
+replicaCount: 1
+
+# Port configuration
+ports:
+  http:
+    containerPort: 3000
+    servicePort: 80
+    protocol: TCP
+
+env:
+  # Define any environment variables here. You can also define them in the
+  # additional values files (values-*.yaml). They will be merged together with
+  # the values defined here.
+  # JAVA_TOOL_OPTIONS: "-XX:+UseContainerSupport -XX:InitialRAMPercentage=50.0 -XX:MaxRAMPercentage=80.0 -XX:-OmitStackTraceInFastThrow -XX:+ExitOnOutOfMemoryError"
+  # Enable if overrideDefaultEntrypoint is enabled
+  # JAVA_MIN_RAM_PERCENTAGE: "50.0"
+  # JAVA_MAX_RAM_PERCENTAGE: "80.0"
+  LOG_PATH: /tmp
+  PORT: "3000"
+
+image:
+  repository: "241533128331.dkr.ecr.eu-central-1.amazonaws.com/containers/wheel-of-names"
+  # by default we will use the appVersion field from Chart.yaml
+  tag:
+  pullPolicy: IfNotPresent
+  overrideDefaultEntrypoint: false
+nameOverride: ""
+fullnameOverride: ""
+
+ingress:
+  # internal ingress is accessible only within KA environment
+  internal:
+    enabled: false
+    ingressClass: internal
+    tls:
+      enabled: true
+    annotations:
+      cert-manager.io/cluster-issuer: managed
+  # corp ingress is accessible by global protect and other adevinta clients
+  corp:
+    enabled: false
+    ingressClass: corp
+    tls:
+      enabled: true
+    annotations:
+      cert-manager.io/cluster-issuer: managed
+  # public ingress is exposed to the internet, but only via akamai,
+  # so there is no need to use a different hostname here.
+  # e.g. gateway.kleinanzeigen.de/foobar is mapped on akamai to
+  # foobar.public.pro.k-cloud.io (which would be the public ingress hostname for application named foobar)
+  public:
+    enabled: false
+    ingressClass: public
+    tls:
+      enabled: true
+    annotations:
+      cert-manager.io/cluster-issuer: managed
+probes:
+  # Liveness probes check whether a pod is "alive". If the probe fails, the pod will be restarted.
+  liveness:
+    enabled: true
+    port: http-management
+    path: /health/liveness
+    # failureThreshold: 3
+    # periodSeconds: 10
+    # initialDelaySeconds: 30
+  # Readiness probes whether a pod is ready to receive requests. If the probe fails, the pod will be taken out of load balancing.
+  readiness:
+    enabled: true
+    port: http-management
+    path: /health/readiness
+    # failureThreshold: 3
+    # periodSeconds: 10
+    # initialDelaySeconds: 30
+    # successThreshold: 1
+  # Startup probes whether a pod has successfully started. Once the probe
+  # succeeds, liveness and readiness probes will be activated. If fails the
+  # configured amount of times, container will be restarted.
+  # For example, with periodSeconds of 3, and failureThreshold of 40, the
+  # Pod has 3*40=120 seconds to become healthy, otherwise it will get restarted.
+  startup:
+    enabled: true
+    port: http-management
+    path: /health/liveness
+    periodSeconds: 3
+    failureThreshold: 40
+    # initialDelaySeconds: 30
+resources:
+  # limits and requests should be the same (we want to avoid to consume more resources than we request).
+  # the actual usage of these resources should always be below requests (and limits).
+  limits:
+    cpu: 1000m
+    memory: 1024Mi
+  requests:
+    cpu: 1000m
+    memory: 1024Mi
+metrics:
+  prometheusAnnotations:
+    enabled: true
+    port: 7080
+    path: /prometheus
+logging:
+  # Setting this to true will add a sidecar that outputs the application.log file to stdout
+  loggingSidecarEnabled: false
+  # Setting this to true will add a sidecar that outputs the application-logstash.json file to stdout.
+  structuredLoggingSidecarEnabled: false
+  # Setting this to true will add a sidecar that outputs the access.log file to stdout. Be careful
+  # when enabling this in production, it might produce too many logs!
+  accesslogSidecarEnabled: false
+  # Setting this to true will add a sidecar that outputs the management-access.log file to stdout.
+  # You might be interested to enable it in nonprod (values-qa.yaml file), but not in production.
+  managementAccesslogSidecarEnabled: false
+rollingUpdate:
+  # Number of additional instances can be started during deployment. Percentages are rounded-up.
+  maxSurge: 25%
+  # Number of instances that can be unavailable during deployments. Can be a percentage of the desired pods.
+  # 0 means that pods will only be terminated when new pods have started and are ready to work.
+  maxUnavailable: 0
+affinity:
+  # Set this to false if you don't need your service to be spread evenly across
+  # all availability zones and VMs. Most likely you want to keep it enabled to
+  # reduce impact during incidents and maintenance events.
+  enabled: true
+# to avoid unnecessary search domain queries and as most of our fqdn internally have 4 dots,
+# we set this values
+dnsConfig:
+  enabled: true
+  config:
+    options:
+      - name: ndots
+        value: "4"
+deployment:
+  # it only makes sense to disable the Deployment if you will enable something else, e.g. cronjob (see below)
+  enabled: true
+service:
+  # it only makes sense to disable the Service if you will disable the Deployment (and don't have any other continuously running pods)
+  enabled: true
+serviceAccount:
+  # most of the time you can leave this enabled, but you can disable the creation of a serviceAccount if you need it
+  enabled: true
+  # if you want to specify a different name, you can do it here, otherwise a name will be autogenerated
+  name:
+job:
+  # set this to true to create a Job resource. You might also want to disable the Deployment resource if this helm chart will only be used to run Job and no continuously running apps.
+  enabled: false
+  # number of retries for failed jobs during a single execution. You can also specify 0, the job will then be marked as failed.
+  backoffLimit: 0
+  # number of successful job runs needed
+  completions: 1
+  # number of jobs running in parallel. 1 means no parallelism
+  parallelism: 1
+cronjob:
+  # set this to true to create a CronJob resource. You might also want to disable the Deployment resource if this helm chart will only be used to run CronJobs and no continuously running apps.
+  enabled: false
+  # schedule for the cronjob to run.
+  #
+  # structure:
+  # - minute (0 - 59)
+  # - hour (0 - 23)
+  # - day of the month (1 - 31)
+  # - month (1 - 12)
+  # - day of the week (0 - 6) (Sunday to Saturday, 7 is also Sunday on some systems)
+  #
+  # e.g.
+  # - every hour at:        "0 * * * *"
+  # - every 5mins:          "*/5 * * * *"
+  # - every monday morning: "30 9 * * 1"
+  schedule: "30 9 * * 1"
+  # set this to true if you want to trigger a CronJob on demand only
+  suspend: false
+  # number of retries for failed jobs during a single execution. You can also specify 0, the job will then be marked as failed and executed during the next scheduled run.
+  backoffLimit: 1
+  # Specifies how to treat concurrent executions of a Job. Valid values are:
+  # - "Allow": allows CronJobs to run concurrently
+  # - "Forbid": forbids concurrent runs, skipping next run if previous run hasn't finished yet
+  # - "Replace": cancels currently running job and replaces it with a new one
+  concurrencyPolicy: Forbid
+  # how many failed jobs to preserve (so that you can inspect the logs etc.)
+  failedJobsHistoryLimit: 3
+  # how many successful jobs to preserve
+  successfulJobsHistoryLimit: 1
+hpa:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 70
+  debugContainer:
+    # can be used to raise total pod cpu usage for testing
+    # curl --data "millicores=500&durationSec=600" POD_IP_ADDRESS:7777/ConsumeCPU
+    enabled: false
+    image: gcr.io/kubernetes-e2e-test-images/resource-consumer:1.5
+    port: 7777
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi
+aws:
+  # enter here the AWS IAM role ARN which will be assumed by the pods
+  # most likely you use a separate role in each environment, as we are using
+  # separate AWS accounts (and therefore IAM roles) per environments
+  iamRole: null
+# DO NOT EDIT THIS! This value will be added as annotation to various kubernetes
+# objects, which will allow us to easilly track the stage/age of our helm charts.
+chartTemplateVersion: 0.1.0
+# these hostname suffixes will be used for automatic hostname generation for ingress resources
+ingressFqdn:
+  internal: internal.pre.k-cloud.io
+  corp: corp.pre.k-cloud.io
+  public: public.pre.k-cloud.io
+# If credentials are required to pull the container images, you can provide
+# the names of the secrets here.
+imagePullSecrets: []
+# tracing is enabled by default, but you can disable it in
+# value yamls (e.g. values-kaos-pre.yaml, values-kaos-pro.yaml)
+# by setting the value to 'false'
+tracing:
+  enabled: true
+slo:
+  enabled: false
+  definitions: []

@@ -1,0 +1,55 @@
+replicaCount: 2
+ingress:
+  internal:
+    enabled: true
+    ingressClass: internal
+    hostname: wheel-of-names.internal.pro.k-cloud.io
+    tls:
+      enabled: true
+      secretName: wheel-of-names-internal-tls
+    annotations:
+      cert-manager.io/cluster-issuer: managed
+  corp:
+    enabled: true
+    ingressClass: corp
+    hostname: wheel-of-names.corp.pro.k-cloud.io
+    tls:
+      enabled: true
+      secretName: wheel-of-names-corp-tls
+    annotations:
+      cert-manager.io/cluster-issuer: managed
+  public:
+    enabled: true
+    ingressClass: public
+    hostname: wheel-of-names.public.pro.k-cloud.io
+    tls:
+      enabled: true
+      secretName: wheel-of-names-public-tls
+    annotations:
+      cert-manager.io/cluster-issuer: managed
+
+resources:
+  # limits and requests should be the same (we want to avoid to consume more resources than we request).
+  # the actual usage of these resources should always be below requests (and limits).
+  # to address DDoS attacks, we increase the cpu limits to observe the behavior of the application under load
+  # we recommend to use at least 2000m (2 vCPU) and 1024Mi (1GB).
+  limits:
+    cpu: 2000m
+    memory: 1024Mi
+  requests:
+    cpu: 2000m
+    memory: 1024Mi
+
+aws:
+  enabled: true
+  iamRole: arn:aws:iam::523714791375:role/kaos-wheel-of-names
+
+env:
+  # This value tells the container which environment is using and is used for picking the correct configuration when running the container.
+  RUNTIME_ENV: "production"
+
+hpa:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 1
+  targetCPUUtilizationPercentage: 55
