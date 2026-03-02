@@ -1,0 +1,96 @@
+name: Deploy-pre
+
+on:
+  pull_request:
+    types: [labeled]
+jobs:
+  deploy-pre:
+    name: Deploy PRE
+    if: contains(github.event.pull_request.labels.*.name, 'deploy-pre')
+    uses: Kleinanzeigen/workflow-deploy/.github/workflows/deploy-pr.yaml@v1
+    secrets: inherit
+
+# name: CI-CD
+
+# on:
+#   pull_request:
+#     paths-ignore:
+#       - "**.md"
+#       - catalog-info.yaml
+#   push:
+#     branches: [main]
+#     paths-ignore:
+#       - "**.md"
+#       - catalog-info.yaml
+
+# jobs:
+#   build:
+#     name: Docker build
+#     runs-on: medium
+#     timeout-minutes: 30
+#     outputs:
+#       version: ${{ steps.semver.outputs.version }}
+#     steps:
+#       - name: Checkout repository
+#         uses: actions/checkout@v6
+
+#       - name: Configure AWS credentials
+#         uses: aws-actions/configure-aws-credentials@v4
+#         with:
+#           aws-access-key-id: ${{ secrets.KA_RELENG_AWS_ACCESS_KEY_ID }}
+#           aws-secret-access-key: ${{ secrets.KA_RELENG_AWS_SECRET_ACCESS_KEY }}
+#           aws-region: eu-central-1
+
+#       - name: Docker login multiple docker registries
+#         uses: Kleinanzeigen/action-docker-login@v0
+#         with:
+#           artifactory-user: ${{ secrets.ARTIFACTORY_USER }}
+#           artifactory-token: ${{ secrets.ARTIFACTORY_TOKEN }}
+
+#       - name: Autocreate ECR repository
+#         uses: Kleinanzeigen/action-create-ecr-repo@v0
+#         with:
+#           grafanacloud-token: ${{ secrets.GRAFANA_OTLP_TOKEN }}
+
+#       - name: Get and set next SemVersion
+#         id: semver
+#         uses: Kleinanzeigen/action-semver@v0
+#         with:
+#           grafanacloud-token: ${{ secrets.GRAFANA_OTLP_TOKEN }}
+
+#       - name: Docker build and Publish image to ECR
+#         uses: Kleinanzeigen/action-docker-build-push-ecr@v0
+#         with:
+#           version: ${{ steps.semver.outputs.version }}
+#           grafanacloud-token: ${{ secrets.GRAFANA_OTLP_TOKEN }}
+#           build-args: |
+#             ARTIFACTORY_USER=${{ secrets.ARTIFACTORY_USER }}
+#             ARTIFACTORY_TOKEN=${{ secrets.ARTIFACTORY_TOKEN }}
+
+#       - name: Charts publish
+#         uses: Kleinanzeigen/action-helm-publish@v0
+#         with:
+#           version: ${{ steps.semver.outputs.version-full }}
+#           chartmuseum-user: ${{ secrets.CHARTMUSEUM_USER }}
+#           chartmuseum-password: ${{ secrets.CHARTMUSEUM_PASSWORD }}
+#           grafanacloud-token: ${{ secrets.GRAFANA_OTLP_TOKEN }}
+
+#   deploy-pre:
+#     name: Deploy PRE
+#     if: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') }}
+#     needs: [build]
+#     uses: Kleinanzeigen/workflow-deploy/.github/workflows/deploy.yaml@v1
+#     secrets: inherit
+#     with:
+#       version: ${{ needs.build.outputs.version }}
+#       environment: "pre"
+
+#   deploy-pro:
+#     name: Deploy PRO
+#     if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+#     needs: [build, deploy-pre]
+#     uses: Kleinanzeigen/workflow-deploy/.github/workflows/deploy.yaml@v1
+#     secrets: inherit
+#     with:
+#       version: ${{ needs.build.outputs.version }}
+#       environment: "pro"

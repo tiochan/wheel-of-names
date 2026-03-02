@@ -1,0 +1,14 @@
+applications:
+  - name: wheel-of-names
+    image: wheel-of-names
+    chart: charts/wheel-of-names
+    helmValuesImageTag: .image.tag
+    buildAndPushImage: true
+    deployPre:
+      argocdApps:
+        - wheel-of-names-kaos-apps-weasel
+      valuesFile: charts/wheel-of-names/values-kaos-pre.yaml
+    deployPro:
+      argocdApps:
+        - wheel-of-names-kaos-apps-fox
+      valuesFile: charts/wheel-of-names/values-kaos-pro.yaml

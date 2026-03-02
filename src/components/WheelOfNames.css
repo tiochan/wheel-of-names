@@ -1,0 +1,27 @@
+.highlight-segment {
+  /* No longer used for arc, but keep for possible fallback */
+}
+
+.highlight-arc {
+  border-style: solid;
+  border-width: 6px;
+  border-radius: 50%;
+  border-color: #ffe066 transparent transparent transparent;
+  box-shadow: 0 0 16px 8px #ffe066;
+  animation: highlight-arc-flash 0.6s linear 0s 3 alternate;
+}
+
+@keyframes highlight-arc-flash {
+  0% {
+    box-shadow: 0 0 0 0 #ffe066;
+    opacity: 1;
+  }
+  50% {
+    box-shadow: 0 0 32px 16px #ffe066;
+    opacity: 1;
+  }
+  100% {
+    box-shadow: 0 0 0 0 #ffe066;
+    opacity: 1;
+  }
+}

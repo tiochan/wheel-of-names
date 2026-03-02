@@ -1,0 +1,35 @@
+env:
+  # This value tells the container which environment is using and is used for picking the correct configuration when running the container.
+  RUNTIME_ENV: "nonprod"
+ingress:
+  corp:
+    enabled: false
+    ingressClass: corp
+    tls:
+      enabled: true
+  sandbox:
+    enabled: false
+    ingressClass: public
+    hostname: gateway.sandbox.ebay-kleinanzeigen.de
+    path: /my-service/
+    tls:
+      enabled: true
+      secretName: api-sandbox-kleinanzeigen-de
+  sandbox-kleinanzeigen:
+    enabled: false
+    ingressClass: public
+    hostname: gateway.sandbox.kleinanzeigen.de
+    path: /my-service/
+    tls:
+      enabled: true
+      secretName: api-sandbox-kleinanzeigen-de
+
+
+# if nothing else is configured on the ingress, this will be used as fallback FQDN (suffix) for the generated ingress
+ingressFqdn:
+  corp: corp.ebayk.ek-k8s-nonprod.dus1.cloud
+  nginx: internal.ebayk.ek-k8s-nonprod.dus1.cloud # == internal ingress
+
+# on-premise we need to authenticate against Amazon ECR to be able to pull the container images
+imagePullSecrets:
+  - name: ecr-pull-credentials

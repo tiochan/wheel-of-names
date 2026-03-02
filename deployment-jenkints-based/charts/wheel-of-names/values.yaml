@@ -1,0 +1,191 @@
+# This should contain your team name to make it easier to contact the developers
+# when issues are discovered in production etc.
+team: frontend-cop
+replicaCount: 1
+env:
+  PORT: 3000
+  # Define any environment variables here. You can also define them in the
+  # additional values files (values-*.yaml). They will be merged together with
+  # the values defined here.
+  #JAVA_TOOL_OPTIONS: "-XX:+UseContainerSupport -XX:InitialRAMPercentage=50.0 -XX:MaxRAMPercentage=80.0 -XX:-OmitStackTraceInFastThrow -XX:+ExitOnOutOfMemoryError"
+  # Enable if overrideDefaultEntrypoint is enabled
+  # JAVA_MIN_RAM_PERCENTAGE: "50.0"
+  # JAVA_MAX_RAM_PERCENTAGE: "80.0"
+  LOG_PATH: /tmp
+  #MESOS_SANDBOX: /tmp
+  # the following JAVA_* variables have to be passed manually as system properties
+  # http.proxyHost, http.proxyPort, https.proxyHost, https.proxyPort and http.nonProxyHosts
+  # only set those if you need to access services from outside our environment
+  #JAVA_PROXY_HOST: proxy.ecg.tools
+  #JAVA_PROXY_PORT: "3128"
+  #JAVA_NO_PROXY: "*.dus1.cloud|*.ams1.cloud|*.ams2.cloud|*.comaas.cloud|*.svc.cluster.local|localhost|10.*|127.*|[::1]"
+  # these should apply the proxy setting system-wide for tools that support them
+  #https_proxy: http://proxy.ecg.tools:3128
+  #http_proxy: http://proxy.ecg.tools:3128
+  #NO_PROXY: ".dus1.cloud,.ams1.cloud,.ams2.cloud,.comaas.cloud,.svc.cluster.local,localhost,127.0.0.1,[::1]"
+image:
+  repository: "241533128331.dkr.ecr.eu-central-1.amazonaws.com/containers/wheel-of-names"
+  # by default we will use the appVersion field from Chart.yaml
+  tag:
+  pullPolicy: IfNotPresent
+  overrideDefaultEntrypoint: false
+nameOverride: ""
+fullnameOverride: ""
+ingress:
+  internal:
+    enabled: false
+    tls:
+      enabled: true
+  # this ingress should only be enabled in prod values-prod-*.yaml files
+  public:
+    enabled: false
+    ingressClass: public
+    hostname: gateway.ebay-kleinanzeigen.de
+    path: /my-service/
+    tls:
+      enabled: true
+      secretName: gateway.ebay-kleinanzeigen.de
+  # Rebranding to kleinanzeigen.de:
+  public-kleinanzeigen:
+    enabled: false
+    ingressClass: public
+    hostname: gateway.kleinanzeigen.de
+    path: /my-service/
+    tls:
+      enabled: true
+      secretName: gateway.kleinanzeigen.de
+probes:
+  # Liveness probes check whether a pod is "alive". If the probe fails, the pod will be restarted.
+  liveness:
+    enabled: true
+    port: http
+    path: /health/liveness
+  # Readiness probes whether a pod is ready to receive requests. If the probe fails, the pod will be taken out of load balancing.
+  readiness:
+    enabled: true
+    port: http
+    path: /health/readiness
+resources:
+  # limits and requests should be the same (we want to avoid to consume more resources than we request).
+  # the actual usage of these resources should always be below requests (and limits).
+  limits:
+    cpu: 1000m
+    memory: 1024Mi
+  requests:
+    cpu: 1000m
+    memory: 1024Mi
+metrics:
+  prometheusAnnotations:
+    enabled: false
+    port: 7080
+    path: /prometheus
+logging:
+  # Setting this to true will add a sidecar that outputs the application.log file to stdout
+  loggingSidecarEnabled: false
+  # Setting this to true will add a sidecar that outputs the application-logstash.json file to stdout.
+  structuredLoggingSidecarEnabled: false
+  # Setting this to true will add a sidecar that outputs the access.log file to stdout. Be careful
+  # when enabling this in production, it might produce too many logs!
+  accesslogSidecarEnabled: false
+  # Setting this to true will add a sidecar that outputs the management-access.log file to stdout.
+  # You might be interested to enable it in nonprod (values-qa.yaml file), but not in production.
+  managementAccesslogSidecarEnabled: false
+rollingUpdate:
+  # Number of additional instances can be started during deployment. Percentages are rounded-up.
+  maxSurge: 25%
+  # Number of instances that can be unavailable during deployments. Can be a percentage of the desired pods.
+  # 0 means that pods will only be terminated when new pods have started and are ready to work.
+  maxUnavailable: 0
+affinity:
+  # Set this to false if you don't need your service to be spread evenly across
+  # all availability zones and VMs. Most likely you want to keep it enabled to
+  # reduce impact during incidents and maintenance events.
+  enabled: true
+# to avoid unnecessary search domain queries and as most of our fqdn internally have 4 dots,
+# we set this values
+dnsConfig:
+  enabled: true
+  config:
+    options:
+      - name: ndots
+        value: "4"
+deployment:
+  # it only makes sense to disable the Deployment if you will enable something else, e.g. cronjob (see below)
+  enabled: true
+service:
+  # it only makes sense to disable the Service if you will disable the Deployment (and don't have any other continuously running pods)
+  enabled: true
+serviceAccount:
+  # most of the time you can leave this enabled, but you can disable the creation of a serviceAccount if you need it
+  enabled: true
+  # if you want to specify a different name, you can do it here, otherwise a name will be autogenerated
+  name:
+job:
+  # set this to true to create a Job resource. You might also want to disable the Deployment resource if this helm chart will only be used to run Job and no continuously running apps.
+  enabled: false
+  # number of retries for failed jobs during a single execution. You can also specify 0, the job will then be marked as failed.
+  backoffLimit: 0
+  # number of successful job runs needed
+  completions: 1
+  # number of jobs running in parallel. 1 means no parallelism
+  parallelism: 1
+cronjob:
+  # set this to true to create a CronJob resource. You might also want to disable the Deployment resource if this helm chart will only be used to run CronJobs and no continuously running apps.
+  enabled: false
+  # schedule for the cronjob to run.
+  #
+  # structure:
+  # - minute (0 - 59)
+  # - hour (0 - 23)
+  # - day of the month (1 - 31)
+  # - month (1 - 12)
+  # - day of the week (0 - 6) (Sunday to Saturday, 7 is also Sunday on some systems)
+  #
+  # e.g.
+  # - every hour at:        "0 * * * *"
+  # - every 5mins:          "*/5 * * * *"
+  # - every monday morning: "30 9 * * 1"
+  schedule: "30 9 * * 1"
+  # number of retries for failed jobs during a single execution. You can also specify 0, the job will then be marked as failed and executed during the next scheduled run.
+  backoffLimit: 1
+  # Specifies how to treat concurrent executions of a Job. Valid values are:
+  # - "Allow": allows CronJobs to run concurrently
+  # - "Forbid": forbids concurrent runs, skipping next run if previous run hasn't finished yet
+  # - "Replace": cancels currently running job and replaces it with a new one
+  concurrencyPolicy: Forbid
+  # how many failed jobs to preserve (so that you can inspect the logs etc.)
+  failedJobsHistoryLimit: 3
+  # how many successful jobs to preserve
+  successfulJobsHistoryLimit: 1
+hpa:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 70
+  debugContainer:
+    # can be used to raise total pod cpu usage for testing
+    # curl --data "millicores=500&durationSec=600" POD_IP_ADDRESS:7777/ConsumeCPU
+    enabled: false
+    image: gcr.io/kubernetes-e2e-test-images/resource-consumer:1.5
+    port: 7777
+    resources:
+      requests:
+        cpu: 10m
+        memory: 50Mi
+aws:
+  # enter here the AWS IAM role ARN which will be assumed by the pods
+  # most likely you use a separate role in each environment, as we are using
+  # separate AWS accounts (and therefore IAM roles) per environments
+  iamRole: null
+# DO NOT EDIT THIS! This value will be added as annotation to various kubernetes
+# objects, which will allow us to easilly track the stage/age of our helm charts.
+chartTemplateVersion: 0.1.0
+# if nothing else is configured on the ingress, this will be used as fallback FQDN (suffix) for the generated ingress
+ingressFqdn:
+  corp: corp.ebayk.ek-k8s-nonprod.dus1.cloud
+  nginx: internal.ebayk.ek-k8s-nonprod.dus1.cloud # == internal ingress
+alertingChannel: red
+
+# here you can reference secrets with container registry credentials if needed
+imagePullSecrets: []
+# - name: ecr-pull-credentials

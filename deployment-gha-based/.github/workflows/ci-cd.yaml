@@ -1,0 +1,65 @@
+name: CI-CD
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths-ignore:
+      - "**.md"
+      - catalog-info.yaml
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - catalog-info.yaml
+
+jobs:
+  build:
+    name: Publish Helm chart(s)
+    runs-on: small
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.semver.outputs.version }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.KA_RELENG_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.KA_RELENG_AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-central-1
+
+      - name: Get and set next SemVersion
+        id: semver
+        uses: Kleinanzeigen/action-semver@v0
+        with:
+           grafanacloud-token: ${{ secrets.GRAFANA_OTLP_TOKEN }}
+
+      - name: Charts publish
+        uses: Kleinanzeigen/action-helm-publish@v0
+        with:
+            version: ${{ steps.semver.outputs.version-full }}
+            chartmuseum-user: ${{ secrets.CHARTMUSEUM_USER }}
+            chartmuseum-password: ${{ secrets.CHARTMUSEUM_PASSWORD }}
+
+  deploy-pre:
+    name: Deploy PRE
+    needs: [build]
+    uses: Kleinanzeigen/workflow-deploy/.github/workflows/deploy.yaml@v1
+    secrets: inherit
+    with:
+      version: ${{ needs.build.outputs.version }}
+      environment: "pre"
+      # grafanacloud-token: ${{ secrets.GRAFANA_OTLP_TOKEN }}
+
+  deploy-pro:
+    name: Deploy PRO
+    if: github.ref == 'refs/heads/main'
+    needs: [build, deploy-pre]
+    uses: Kleinanzeigen/workflow-deploy/.github/workflows/deploy.yaml@v1
+    secrets: inherit
+    with:
+      version: ${{ needs.build.outputs.version }}
+      environment: "pro"
